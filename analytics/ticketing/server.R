@@ -8,11 +8,13 @@
 #
 
 library(shiny)
+library(readr)
 library(dplyr)
 library(ggplot2)
 library(lubridate)
 library(plotly)
 library(Hmisc)
+library(ggmap)
 
 options(scipen=0)
 
@@ -23,7 +25,7 @@ get.weekdayset <- function(date) {
                                              'Tue/Wed/Thu')))
 }
 
-data <- read.csv2('./hourly-lines.csv') %>%
+data <- read_csv2('./hourly-lines.csv') %>%
     mutate(DATETIME = ymd_hms(DATETIME),
            month = month(DATETIME),
            week = isoweek(DATETIME),
@@ -32,6 +34,81 @@ data <- read.csv2('./hourly-lines.csv') %>%
            hour = hour(DATETIME),
            SUM = as.numeric(SUM),
            weekdayset = get.weekdayset(DATETIME))
+
+pass.weekly.data <- read_delim("./weekly-usage_anonymized.csv", delim = ";") %>%
+  group_by(DATETIME) %>%
+  summarise(MIN = median(MIN),
+            MAX = median(MAX),
+            COUNT = median(COUNT),
+            SUM = median(SUM))
+pass.monthly.data <- read_delim("./monthly-usage_anonymized.csv", delim = ";") %>%
+  group_by(DATETIME) %>%
+  summarise(MIN = median(MIN),
+            MAX = median(MAX),
+            COUNT = median(COUNT),
+            SUM = median(SUM))
+
+stops.data <- read_delim("hourly-stops.csv", delim = ";") %>%
+  mutate(DATETIME = ymd_hms(DATETIME),
+         month = month(DATETIME),
+         week = isoweek(DATETIME),
+         weekday = wday(DATETIME,label=TRUE,abbr = TRUE),
+         date = as.Date(DATETIME),
+         hour = hour(DATETIME),
+         SUM = as.numeric(SUM),
+         weekdayset = get.weekdayset(DATETIME))
+
+stops.gtfs <- read_csv("gtfs/stops.txt", col_types = cols(.default = "_",
+                                                          stop_id = col_integer(),
+                                                          stop_lat = col_double(),
+                                                          stop_lon = col_double()))
+
+# ctba.map <- get_map(location = "Curitiba", maptype = "satellite", zoom = 12)
+
+stops.data.all <- stops.data %>%
+  inner_join(stops.gtfs, c("BUSSTOPID" = "stop_id"))
+
+# Tentando fazer o mapa aparecer 
+# map_data <- stops.data.all %>%
+#   group_by_("hour", "stop_lat", "stop_lon") %>%
+#   summarise(total_passengers = sum(SUM)) 
+# 
+# g <- list(
+#   scope = 'curitiba',
+#   showland = TRUE,
+#   landcolor = toRGB("grey83"),
+#   subunitcolor = toRGB("white"),
+#   countrycolor = toRGB("white"),
+#   showlakes = TRUE,
+#   lakecolor = toRGB("white"),
+#   showsubunits = TRUE,
+#   showcountries = TRUE,
+#   resolution = 50,
+#   projection = list(
+#     type = 'conic conformal',
+#     rotation = list(lon = -100)
+#   ),
+#   lonaxis = list(
+#     showgrid = TRUE,
+#     gridwidth = 0.5,
+#     range = c(-140, -55),
+#     dtick = 5
+#   ),
+#   lataxis = list(
+#     showgrid = TRUE,
+#     gridwidth = 0.5,
+#     range = c(20, 60),
+#     dtick = 5
+#   )
+# )
+# 
+# p <- plot_geo(map_data, lat = ~stop_lat, lon = ~stop_lon) %>%
+#   add_markers(
+#     text = ~paste(total_passengers, "passengers"),
+#     color = ~total_passengers, symbol = I("circle"), size = I(8),
+#     hoverinfo = "text"
+#   ) %>%
+#   layout(title = 'Passenges on stops', geo = g)
 
 all.lines <- unique(data$CODLINHA)
 
@@ -62,7 +139,7 @@ shinyServer(function(input, output) {
         }
     }
     
-    output$plot <- renderPlotly({
+    output$bar.plot <- renderPlotly({
       
       # Ideas for passenger analysis
       # passenger.stats.per.week = read.csv2('passenger-stats/weekly-usage_anonymized.csv') %>%
@@ -80,7 +157,7 @@ shinyServer(function(input, output) {
         
         if (input$line.filter == 'all') {
             bar_plot <- filtered_data %>%
-                filter(CODLINHA %in% get.selected.lines(data = ., line.filter = input$line.filter,selected.line = input$selected.line)) %>%
+                filter(CODLINHA %in% get.selected.lines(data = ., line.filter = input$line.filter,selected.line = input$bar.selected.line)) %>%
                 group_by_(input$time.agg.select) %>%
                 summarise(total_passengers = sum(SUM)) %>%
                 ggplot(aes_string(x=input$time.agg.select, y='total_passengers')) +
@@ -91,9 +168,9 @@ shinyServer(function(input, output) {
         } else {
             plot_title_prefix = ifelse(input$line.filter == 'top5','Top-5',
                                 ifelse(input$line.filter == 'bottom5','Bottom-5',
-                                       paste('Line',input$selected.line)))
+                                       paste('Line',input$bar.selected.line)))
             bar_plot <- filtered_data %>%
-                filter(CODLINHA %in% get.selected.lines(data = ., line.filter = input$line.filter,selected.line = input$selected.line)) %>%
+                filter(CODLINHA %in% get.selected.lines(data = ., line.filter = input$line.filter,selected.line = input$bar.selected.line)) %>%
                 group_by_(input$time.agg.select, "CODLINHA") %>%
                 summarise(total_passengers = sum(SUM)) %>%
                 ggplot(aes_string(x=input$time.agg.select, y='total_passengers', group = 'CODLINHA', color = 'CODLINHA')) +
@@ -109,9 +186,50 @@ shinyServer(function(input, output) {
         return(plotly_chart)
     })
     
+    output$passenger.bar.plot <- renderPlotly({
+      
+      if (input$pass.time.agg.select == "week"){
+        passenger.bar.plot <- pass.weekly.data %>%
+          ggplot(aes_string(x = "DATETIME", y = input$pass.metric.select)) +
+          geom_bar(stat = "identity") + 
+          xlab("Week") +
+          theme(axis.text.x = element_text(size=8, angle=20))
+      } else {
+        passenger.bar.plot <- pass.monthly.data %>%
+          ggplot(aes_string(x = "DATETIME", y = input$pass.metric.select)) +
+          geom_bar(stat = "identity") +
+          xlab("Month")
+      }
+      
+      plotly_chart = passenger.bar.plot %>%
+        ggplotly(height = 500) %>%
+        layout(margin=list(l = 100), yaxis=list(tickprefix=" "))
+      return(plotly_chart)
+      
+    })
     
-    output$lineSelector <- renderUI({
-        selectInput("selected.line", label = h3("Selected Line"), 
+    output$map.plot <- renderPlotly({
+      
+      filtered_data <- stops.data.all %>%
+        filter((DATETIME >= input$date.range[1]) & (DATETIME <= input$date.range[2]))
+      
+      map_data <- filtered_data %>%
+        group_by_(input$time.agg.select, "stop_lat", "stop_lon") %>%
+        summarise(total_passengers = sum(SUM)) 
+      map_plot <- ctba.map %>%
+        ggmap() +
+        geom_point(data = map_data, aes_string(x="stop_lon", y="stop_lat"), color = "red")# +
+        # labs(title=paste("Total number of passengers per",capitalize(input$time.agg.select)),
+        #      x=capitalize(input$time.agg.select),
+        #      y="Number of passengers")
+      
+      plotly_chart = map_plot %>%
+        ggplotly() %>%
+      return(plotly_chart)
+    })
+    
+    output$bar.lineSelector <- renderUI({
+        selectInput("bar.selected.line", label = h3("Selected Line"), 
                     choices = as.list(all.lines), 
                     selected = '000')
     })

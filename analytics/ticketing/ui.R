@@ -37,19 +37,45 @@ shinyUI(
                           radioButtons("line.filter", label = h3("Line Filter"), 
                                        choices = list("All" = 'all', "Top-5" = 'top5',"Bottom-5" = 'bottom5', "Single-Line" = 'single-line'), 
                                        selected = 'all'),
-                          uiOutput('lineSelector')
+                          uiOutput('bar.lineSelector')
                       ),
                       mainPanel(
-                          plotlyOutput("plot")
+                          plotlyOutput("bar.plot")
                       )
                   )
                 ),
                tabPanel("Passenger",
-                        verbatimTextOutput("summary")
-               ),
-               navbarMenu("Bus Stop",
-                          tabPanel("Table",
-                                   DT::dataTableOutput("table")
+                        sidebarLayout(
+                          sidebarPanel(
+                            # Copy the line below to make a select box
+                            radioButtons("pass.time.agg.select", label = h3("Time Aggregation"),
+                                        choices = list("Month" = 'month', "Week" = 'week'),
+                                        selected = 'month'),
+                            selectInput("pass.metric.select", label = h3("Time Aggregation"), 
+                                        choices = list("Minimum" = 'MIN', "Maximum" = 'MAX', 
+                                                       "Count" = 'COUNT', "Sum" = 'SUM'),
+                                        selected = "SUM")
+                          ),
+                        mainPanel(
+                          plotlyOutput("passenger.bar.plot")
+                        )
+               )),
+               tabPanel("Bus Stop",
+                          sidebarLayout(
+                            sidebarPanel(
+                              # Copy the line below to make a select box 
+                              selectInput("time.agg.select", label = h3("Time Aggregation"), 
+                                          choices = list("Month" = 'month', "Week" = 'week', "Weekday" = 'weekday', 
+                                                         "Weekday Set" = 'weekdayset', "Day" = 'date', "Hour" = 'hour'), 
+                                          selected = 'month'),
+                              # Copy the line below to make a slider range 
+                              dateRangeInput("date.range", label = h3("Date range"),
+                                             min=as.Date("2017-04-30"), max=as.Date("2017-07-17"),
+                                             start=as.Date("2017-04-30"),end=as.Date("2017-07-17"))
+                            ),
+                            mainPanel(
+                              plotlyOutput("map.plot")
+                            )
                           )
                )
     )
