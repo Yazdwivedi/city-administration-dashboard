@@ -9,33 +9,49 @@
 
 library(shiny)
 library(markdown)
+library(plotly)
 
 # Define UI for application that draws a histogram
-shinyUI(fluidPage(
+shinyUI(
+  fluidPage(
   
-  # Application title
-  titlePanel("Curitiba City Administration Dashboard (Powered by Ophidia)"),
-  
-  hr(),
-  
-  sidebarLayout(
-      sidebarPanel(
-          # Copy the line below to make a select box 
-          selectInput("time.agg.select", label = h3("Time Aggregation"), 
-                      choices = list("Month" = 'month', "Week" = 'week', "Weekday" = 'weekday', 
-                                     "Weekday Set" = 'weekdayset', "Day" = 'date', "Hour" = 'hour'), 
-                      selected = 'month'),
-          # Copy the line below to make a slider range 
-          dateRangeInput("date.range", label = h3("Date range"),
-                         min=as.Date("2017-04-30"), max=as.Date("2017-07-17"),
-                         start=as.Date("2017-04-30"),end=as.Date("2017-07-17")),
-          radioButtons("line.filter", label = h3("Line Filter"), 
-                       choices = list("All" = 'all', "Top-5" = 'top5',"Bottom-5" = 'bottom5', "Single-Line" = 'single-line'), 
-                       selected = 'all'),
-          uiOutput('lineSelector')
-      ),
-      mainPanel(
-          plotlyOutput("plot")
-      )
+    # Application title
+    titlePanel("Curitiba City Administration Dashboard (Powered by Ophidia)"),
+    
+    hr(),
+    
+    navbarPage("CAD",
+                id = 'tab',
+                tabPanel("Overall",
+                  sidebarLayout(
+                      sidebarPanel(
+                          # Copy the line below to make a select box 
+                          selectInput("time.agg.select", label = h3("Time Aggregation"), 
+                                      choices = list("Month" = 'month', "Week" = 'week', "Weekday" = 'weekday', 
+                                                     "Weekday Set" = 'weekdayset', "Day" = 'date', "Hour" = 'hour'), 
+                                      selected = 'month'),
+                          # Copy the line below to make a slider range 
+                          dateRangeInput("date.range", label = h3("Date range"),
+                                         min=as.Date("2017-04-30"), max=as.Date("2017-07-17"),
+                                         start=as.Date("2017-04-30"),end=as.Date("2017-07-17")),
+                          radioButtons("line.filter", label = h3("Line Filter"), 
+                                       choices = list("All" = 'all', "Top-5" = 'top5',"Bottom-5" = 'bottom5', "Single-Line" = 'single-line'), 
+                                       selected = 'all'),
+                          uiOutput('lineSelector')
+                      ),
+                      mainPanel(
+                          plotlyOutput("plot")
+                      )
+                  )
+                ),
+               tabPanel("Passenger",
+                        verbatimTextOutput("summary")
+               ),
+               navbarMenu("Bus Stop",
+                          tabPanel("Table",
+                                   DT::dataTableOutput("table")
+                          )
+               )
+    )
   )
-))
+)

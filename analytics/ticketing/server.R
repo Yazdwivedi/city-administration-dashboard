@@ -8,7 +8,7 @@
 #
 
 library(shiny)
-library(tidyverse)
+library(dplyr)
 library(ggplot2)
 library(lubridate)
 library(plotly)
@@ -23,11 +23,11 @@ get.weekdayset <- function(date) {
                                              'Tue/Wed/Thu')))
 }
 
-data <- read.csv2('/local/tarciso/masters/data/city-admin-dashboard/hourly-lines.csv') %>%
+data <- read.csv2('./hourly-lines.csv') %>%
     mutate(DATETIME = ymd_hms(DATETIME),
            month = month(DATETIME),
            week = isoweek(DATETIME),
-           weekday = wday(DATETIME,label=TRUE,abbr = TRUE,locale = "en_US.utf8"),
+           weekday = wday(DATETIME,label=TRUE,abbr = TRUE),
            date = as.Date(DATETIME),
            hour = hour(DATETIME),
            SUM = as.numeric(SUM),
@@ -63,8 +63,16 @@ shinyServer(function(input, output) {
     }
     
     output$plot <- renderPlotly({
-        print(input$time.agg.select)
-        print(str(input$date.range))
+      
+      # Ideas for passenger analysis
+      # passenger.stats.per.week = read.csv2('passenger-stats/weekly-usage_anonymized.csv') %>%
+      #   mutate(SUM = as.numeric(SUM))
+      # hist(passenger.stats.per.week$SUM)
+      # 
+      # passenger.stats.per.month = read.csv2('passenger-stats/monthly-usage_anonymized.csv') %>%
+      #   mutate(SUM = as.numeric(SUM))
+      # hist(passenger.stats.per.month$SUM)
+      
         filtered_data <- data %>%
             filter((DATETIME >= input$date.range[1]) & (DATETIME <= input$date.range[2]))
         
