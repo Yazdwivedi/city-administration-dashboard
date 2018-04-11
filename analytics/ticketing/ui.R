@@ -22,6 +22,7 @@ shinyUI(
     
     navbarPage("CAD",
                 id = 'tab',
+                selected = 'Bus Stop',
                 tabPanel("Overall",
                   sidebarLayout(
                       sidebarPanel(
@@ -40,7 +41,7 @@ shinyUI(
                           uiOutput('bar.lineSelector')
                       ),
                       mainPanel(
-                          plotlyOutput("bar.plot")
+                          plotOutput("bar.plot")
                       )
                   )
                 ),
@@ -64,17 +65,20 @@ shinyUI(
                           sidebarLayout(
                             sidebarPanel(
                               # Copy the line below to make a select box 
-                              selectInput("time.agg.select", label = h3("Time Aggregation"), 
+                              selectInput("stops.time.agg.select", label = h3("Time Aggregation"), 
                                           choices = list("Month" = 'month', "Week" = 'week', "Weekday" = 'weekday', 
                                                          "Weekday Set" = 'weekdayset', "Day" = 'date', "Hour" = 'hour'), 
                                           selected = 'month'),
+                              selectInput("stops.time.agg.value", label = h3("Time Aggregation Value"), 
+                                          choices = list('4' = 4, '5' = 5, '6' = 6, '7' = 7),
+                                          selected = 5),
                               # Copy the line below to make a slider range 
-                              dateRangeInput("date.range", label = h3("Date range"),
+                              dateRangeInput("stops.date.range", label = h3("Date range"),
                                              min=as.Date("2017-04-30"), max=as.Date("2017-07-17"),
                                              start=as.Date("2017-04-30"),end=as.Date("2017-07-17"))
                             ),
                             mainPanel(
-                              plotlyOutput("map.plot")
+                              plotOutput("map.plot")
                             )
                           )
                )

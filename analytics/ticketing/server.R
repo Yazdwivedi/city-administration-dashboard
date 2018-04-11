@@ -25,15 +25,17 @@ get.weekdayset <- function(date) {
                                              'Tue/Wed/Thu')))
 }
 
-data <- read_delim("./hourly-lines.csv", delim = ";") %>%
-  mutate(DATETIME = ymd_hms(DATETIME),
-         month = month(DATETIME),
-         week = isoweek(DATETIME),
-         weekday = wday(DATETIME,label=TRUE,abbr = TRUE),
-         date = as.Date(DATETIME),
-         hour = hour(DATETIME),
-         weekdayset = get.weekdayset(DATETIME))
-
+# data <- read_delim("./hourly-lines.csv", delim = ";") %>%
+#   mutate(DATETIME = ymd_hms(DATETIME),
+#          month = month(DATETIME),
+#          week = isoweek(DATETIME),
+#          weekday = wday(DATETIME,label=TRUE,abbr = TRUE),
+#          date = as.Date(DATETIME),
+#          hour = hour(DATETIME),
+#          weekdayset = get.weekdayset(DATETIME))
+# 
+# all.lines <- unique(data$CODLINHA)
+# 
 # pass.weekly.data <- read_delim("./weekly-usage_anonymized.csv", delim = ";") %>%
 #   group_by(DATETIME) %>%
 #   summarise(MIN = median(MIN),
@@ -47,27 +49,25 @@ data <- read_delim("./hourly-lines.csv", delim = ";") %>%
 #             MAX = median(MAX),
 #             COUNT = median(COUNT),
 #             SUM = median(SUM))
-# 
-# stops.data <- read_delim("hourly-stops.csv", delim = ";") %>%
-#   mutate(DATETIME = ymd_hms(DATETIME),
-#          month = month(DATETIME),
-#          week = isoweek(DATETIME),
-#          weekday = wday(DATETIME,label=TRUE,abbr = TRUE),
-#          date = as.Date(DATETIME),
-#          hour = hour(DATETIME),
-#          weekdayset = get.weekdayset(DATETIME))
 
-# stops.gtfs <- read_csv("gtfs/stops.txt", col_types = cols(.default = "_",
-#                                                           stop_id = col_integer(),
-#                                                           stop_lat = col_double(),
-#                                                           stop_lon = col_double()))
+stops.data <- read_delim("hourly-stops.csv", delim = ";") %>%
+  mutate(DATETIME = ymd_hms(DATETIME),
+         month = month(DATETIME),
+         week = isoweek(DATETIME),
+         weekday = wday(DATETIME,label=TRUE,abbr = TRUE),
+         date = as.Date(DATETIME),
+         hour = hour(DATETIME),
+         weekdayset = get.weekdayset(DATETIME))
 
-# stops.data.all <- stops.data %>%
-#   inner_join(stops.gtfs, c("BUSSTOPID" = "stop_id"))
+stops.gtfs <- read_csv("gtfs/stops.txt", col_types = cols(.default = "_",
+                                                          stop_id = col_integer(),
+                                                          stop_lat = col_double(),
+                                                          stop_lon = col_double()))
 
-# ctba.map <- get_map(location = "Curitiba", maptype = "satellite", zoom = 12)
+stops.data.all <- stops.data %>%
+  inner_join(stops.gtfs, c("BUSSTOPID" = "stop_id"))
 
-
+ctba.map <- get_map(location = "Curitiba", maptype = "satellite", zoom = 12)
 
 # Tentando fazer o mapa aparecer 
 # map_data <- stops.data.all %>%
@@ -110,11 +110,11 @@ data <- read_delim("./hourly-lines.csv", delim = ";") %>%
 #     hoverinfo = "text"
 #   ) %>%
 #   layout(title = 'Passenges on stops', geo = g)
+#
 
-all.lines <- unique(data$CODLINHA)
 
 # Define server logic required to draw a histogram
-shinyServer(function(input, output) {
+shinyServer(function(input, output, session) {
     
     get.selected.lines <- function(lines_data,line.filter,selected.line) {
         if (line.filter == 'all') {
@@ -140,7 +140,7 @@ shinyServer(function(input, output) {
         }
     }
     
-    output$bar.plot <- renderPlotly({
+    output$bar.plot <- renderPlot({
       
         filtered_data <- data %>%
             filter((DATETIME >= input$date.range[1]) & (DATETIME <= input$date.range[2]))
@@ -198,10 +198,11 @@ shinyServer(function(input, output) {
                     y="Number of passengers")
         }
         
-        plotly_chart = bar_plot %>%
-            ggplotly() %>%
-            layout(margin=list(l = 100), yaxis=list(tickprefix=" "))
-        return(plotly_chart)
+        # plotly_chart = bar_plot %>%
+        #     ggplotly() %>%
+        #     layout(margin=list(l = 100), yaxis=list(tickprefix=" "))
+        # return(plotly_chart)
+        return(bar_plot)
     })
     
     output$passenger.bar.plot <- renderPlotly({
@@ -226,30 +227,42 @@ shinyServer(function(input, output) {
       
     })
     
-    output$map.plot <- renderPlotly({
+    output$map.plot <- renderPlot({
       
       filtered_data <- stops.data.all %>%
-        filter((DATETIME >= input$date.range[1]) & (DATETIME <= input$date.range[2]))
+        filter_('month' == as.integer(input$stops.time.agg.value),
+              ('DATETIME' >= input$stops.date.range[1]) & ('DATETIME' <= input$stops.date.range[2]))
       
       map_data <- filtered_data %>%
-        group_by_(input$time.agg.select, "stop_lat", "stop_lon") %>%
+        group_by_(input$stops.time.agg.select, "stop_lat", "stop_lon") %>%
         summarise(total_passengers = sum(SUM)) 
-      map_plot <- ctba.map %>%
-        ggmap() +
-        geom_point(data = map_data, aes_string(x="stop_lon", y="stop_lat"), color = "red")# +
-        # labs(title=paste("Total number of passengers per",capitalize(input$time.agg.select)),
-        #      x=capitalize(input$time.agg.select),
-        #      y="Number of passengers")
       
-      plotly_chart = map_plot %>%
-        ggplotly() %>%
-      return(plotly_chart)
+      map_plot <- ggmap(ctba.map) + 
+        geom_density2d(data = map_data, aes(x = stop_lon, y = stop_lat), size = 0.3) + 
+        stat_density2d(data = map_data, aes(x = stop_lon, y = stop_lat, fill = ..level.., alpha = ..level..), 
+                       size = 0.01, bins = 16, geom = "polygon") + 
+        scale_fill_gradient(low = "green", high = "red") + 
+        scale_alpha(range = c(0, 1), guide = FALSE)
+      
+      # plotly_chart = map_plot %>%
+      #   ggplotly()
+      # return(plotly_chart)
+      return(map_plot)
     })
     
     output$bar.lineSelector <- renderUI({
         selectInput("bar.selected.line", label = h3("Selected Line"), 
                     choices = as.list(all.lines), 
                     selected = '000')
+    })
+    
+    observe({ 
+      updated_choices = as.character(sort(unique(stops.data[[input$stops.time.agg.select]])))
+      
+      updateSelectInput(session, "stops.time.agg.value",
+                        choices = updated_choices,
+                        selected = updated_choices[1]
+      )
     })
     
 })
