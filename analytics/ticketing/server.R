@@ -31,6 +31,17 @@ get.weekdayset <- function(date) {
                                              'Tue/Wed/Thu')))
 }
 
+data <- NULL
+all.lines <- NULL
+pass.weekly.data <- NULL
+pass.monthly.data <- NULL
+stops.data.all <- NULL
+ctba.map <- NULL
+
+
+
+
+
 load_data <- function() {
 
   #Reading overall boarding data...
@@ -137,8 +148,9 @@ load_data <- function() {
   #Reading Curitiba Map from file...
   
   #ctba.map <- get_map(location = "Curitiba", maptype = "satellite", zoom = 12)
-  #save(ctba.map, file="./ctba-map.rda")
-  load("./ctba-map.rda")
+  #saveRDS(ctba.map, file="./ctba-map.rds")
+  ctba.map <<- readRDS("./ctba-map.rds")
+  
 }
 
 # Define server logic required to draw a histogram
@@ -279,6 +291,7 @@ shinyServer(function(input, output, session) {
     })
     
     output$bar.lineSelector <- renderUI({
+        if (is.null(all.lines)) return()
         selectInput("bar.selected.line", label = h3("Selected Line"), 
                     choices = as.list(all.lines), 
                     selected = '000')
