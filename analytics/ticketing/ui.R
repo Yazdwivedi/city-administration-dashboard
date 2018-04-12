@@ -87,6 +87,8 @@ shinyUI(
                             )
                           )
                )
-    )
+    ),
+    hr(),
+    print("Note: The data provided for this application comprises several (non-contiguous) days of April (1 day), May (29 days), June (17 days) and July (17 days) in 2017")
   )
 )

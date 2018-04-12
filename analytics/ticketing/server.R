@@ -16,7 +16,6 @@ library(lubridate)
 library(plotly)
 library(Hmisc)
 library(ggmap)
-library(lazyeval)
 
 options(scipen=0)
 
@@ -32,53 +31,108 @@ get.weekdayset <- function(date) {
                                              'Tue/Wed/Thu')))
 }
 
-data <- read_delim("./hourly-lines.csv", delim = ";") %>%
-  mutate(DATETIME = ymd_hms(DATETIME),
-         month = month(DATETIME),
-         week = isoweek(DATETIME),
-         weekday = wday(DATETIME,label=TRUE,abbr = TRUE),
-         date = as.Date(DATETIME),
-         hour = hour(DATETIME),
-         weekdayset = get.weekdayset(DATETIME))
+#Reading overall boarding data...
+
+# data <- read_delim("./hourly-lines.csv", delim = ";") %>%
+#   mutate(DATETIME = ymd_hms(DATETIME),
+#          month = month(DATETIME),
+#          week = isoweek(DATETIME),
+#          weekday = wday(DATETIME,label=TRUE,abbr = TRUE, locale = "en_US.utf8"),
+#          date = as.Date(DATETIME),
+#          hour = hour(DATETIME),
+#          weekdayset = get.weekdayset(DATETIME)) %>%
+#   select(CODLINHA, SUM, month, week, weekday, date, hour, weekdayset)
+# write.csv(data, './overall-boarding.csv', row.names = F)
+data <- read_csv('./overall-boarding.csv', col_types=list(CODLINHA = col_character(),
+                                                      SUM = col_double(),
+                                                      month = col_integer(),
+                                                      week = col_integer(),
+                                                      weekday = col_factor(levels = c('Sun','Mon','Tue','Wed','Thu','Fri','Sat')),
+                                                      date = col_datetime(format = ""),
+                                                      hour = col_integer(),
+                                                      weekdayset = col_factor(levels = c('Sat/Sun','Mon/Fri','Tue/Wed/Thu'))))
 
 all.lines <- unique(data$CODLINHA)
 
-pass.weekly.data <- read_delim("./weekly-usage_anonymized.csv", delim = ";") %>%
-  group_by(DATETIME) %>%
-  summarise(MIN = median(MIN),
-            MAX = median(MAX),
-            COUNT = median(COUNT),
-            SUM = median(SUM))
+#Reading average passenger week boarding data...
 
-pass.monthly.data <- read_delim("./monthly-usage_anonymized.csv", delim = ";") %>%
-  group_by(DATETIME) %>%
-  summarise(MIN = median(MIN),
-            MAX = median(MAX),
-            COUNT = median(COUNT),
-            SUM = median(SUM))
+# pass.weekly.data <- read_delim("./weekly-usage_anonymized.csv", delim = ";") %>%
+#   group_by(DATETIME) %>%
+#   summarise(MIN = median(MIN),
+#             MAX = median(MAX),
+#             COUNT = median(COUNT),
+#             SUM = median(SUM)) %>%
+#   ungroup() %>%
+#   rename(year_week = DATETIME)
+# write.csv(pass.weekly.data, './avg-passenger-week-boardings.csv',row.names = F)
+pass.weekly.data <- read_csv('./avg-passenger-week-boardings.csv', col_types=list(year_week = col_character(),
+                                                                                   MIN = col_integer(),
+                                                                                   MAX = col_integer(),
+                                                                                   COUNT = col_integer(),
+                                                                                   SUM = col_integer()))
 
-stops.data <- read_delim("hourly-stops.csv", delim = ";") %>%
-  mutate(DATETIME = ymd_hms(DATETIME),
-         month = month(DATETIME),
-         week = isoweek(DATETIME),
-         weekday = wday(DATETIME,label=TRUE,abbr = TRUE),
-         date = as.Date(DATETIME),
-         hour = hour(DATETIME),
-         weekdayset = get.weekdayset(DATETIME),
-         month_str = as.character(month),
-         week_str = as.character(week),
-         weekday_str = as.character(weekday),
-         date_str = as.character(date),
-         hour_str = as.character(hour),
-         weekdayset_str = as.character(weekdayset))
+#Reading average passenger month boarding data...
 
-stops.gtfs <- read_csv("gtfs/stops.txt", col_types = cols(.default = "_",
-                                                          stop_id = col_integer(),
-                                                          stop_lat = col_double(),
-                                                          stop_lon = col_double()))
+# pass.monthly.data <- read_delim("./monthly-usage_anonymized.csv", delim = ";") %>%
+#   group_by(DATETIME) %>%
+#   summarise(MIN = median(MIN),
+#             MAX = median(MAX),
+#             COUNT = median(COUNT),
+#             SUM = median(SUM)) %>%
+#   ungroup() %>%
+#   rename(month = DATETIME)
+# write.csv(pass.monthly.data, './avg-passenger-month-boardings.csv',row.names = F)
+pass.monthly.data <- read_csv('./avg-passenger-month-boardings.csv', col_types=list(month = col_character(),
+                                                                                  MIN = col_integer(),
+                                                                                  MAX = col_integer(),
+                                                                                  COUNT = col_integer(),
+                                                                                  SUM = col_integer()))
+#Reading overall bus stops boarding data...
 
-stops.data.all <- stops.data %>%
-  inner_join(stops.gtfs, c("BUSSTOPID" = "stop_id"))
+# stops.data <- read_delim("hourly-stops.csv", delim = ";") %>%
+#   mutate(DATETIME = ymd_hms(DATETIME),
+#          month = month(DATETIME),
+#          week = isoweek(DATETIME),
+#          weekday = wday(DATETIME,label=TRUE,abbr = TRUE, locale = "en_US.utf8"),
+#          date = as.Date(DATETIME),
+#          hour = hour(DATETIME),
+#          weekdayset = get.weekdayset(DATETIME),
+#          weekdayset = get.weekdayset(DATETIME),
+#          month_str = as.character(month),
+#          week_str = as.character(week),
+#          weekday_str = as.character(weekday),
+#          date_str = as.character(date),
+#          hour_str = as.character(hour),
+#          weekdayset_str = as.character(weekdayset))
+# 
+# stops.gtfs <- read_csv("gtfs/stops.txt", col_types = cols(.default = "_",
+#                                                           stop_id = col_integer(),
+#                                                           stop_lat = col_double(),
+#                                                           stop_lon = col_double()))
+# 
+# stops.data.all <- stops.data2 %>%
+#   inner_join(stops.gtfs, c("BUSSTOPID" = "stop_id")) %>%
+#   select(BUSSTOPID, SUM, month, week, weekday, date, hour, weekdayset, stop_lat, stop_lon, month_str, week_str, weekday_str, date_str, hour_str, weekdayset_str)
+# 
+# write.csv(stops.data.all, './stops-overall-boarding.csv',row.names = F)
+stops.data.all <- read_csv('./stops-overall-boarding.csv', col_types=list(BUSSTOPID = col_integer(),
+                                                                           SUM = col_double(),
+                                                                           month = col_integer(),
+                                                                           week = col_integer(),
+                                                                           weekday = col_factor(levels = c('Sun','Mon','Tue','Wed','Thu','Fri','Sat')),
+                                                                           date = col_datetime(format = ""),
+                                                                           hour = col_integer(),
+                                                                           weekdayset = col_factor(levels = c('Sat/Sun','Mon/Fri','Tue/Wed/Thu')),
+                                                                           stop_lat = col_double(),
+                                                                           stop_lon = col_double(),
+                                                                           month_str = col_character(),
+                                                                           week_str = col_character(),
+                                                                           weekday_str = col_character(),
+                                                                           date_str = col_character(),
+                                                                           hour_str = col_character(),
+                                                                           weekdayset_str = col_character()))
+
+#Reading Curitiba Map from file...
 
 #ctba.map <- get_map(location = "Curitiba", maptype = "satellite", zoom = 12)
 #save(ctba.map, file="./ctba-map.rda")
@@ -114,7 +168,7 @@ shinyServer(function(input, output, session) {
     output$bar.plot <- renderPlot({
       
         filtered_data <- data %>%
-            filter((DATETIME >= input$date.range[1]) & (DATETIME <= input$date.range[2]))
+            filter((date >= input$date.range[1]) & (date <= input$date.range[2]))
         
         sel_lines = get.selected.lines(lines_data = filtered_data, line.filter = input$line.filter,selected.line = input$bar.selected.line)
         
@@ -158,13 +212,13 @@ shinyServer(function(input, output, session) {
       
       if (input$pass.time.unit == "week"){
         passenger.bar.plot <- pass.weekly.data %>%
-          ggplot(aes_string(x = "DATETIME", y = input$pass.metric.select)) +
+          ggplot(aes_string(x = "year_week", y = input$pass.metric.select)) +
           geom_bar(stat = "identity") + 
           xlab("Week") +
           theme(axis.text.x = element_text(size=8, angle=20))
       } else {
         passenger.bar.plot <- pass.monthly.data %>%
-          ggplot(aes_string(x = "DATETIME", y = input$pass.metric.select)) +
+          ggplot(aes_string(x = "month", y = input$pass.metric.select)) +
           geom_bar(stat = "identity") +
           labs(title=paste("Agerage passenger num. boardings per",capitalize(input$time.unit)),
                x=capitalize(input$time.unit),
@@ -183,6 +237,7 @@ shinyServer(function(input, output, session) {
     output$map.plot <- renderPlot({
       
       filtered_data <- stops.data.all %>%
+        #filter_(paste(paste0('as.character(',input$stops.time.unit,')'),'==',paste0('\'',input$stops.time.agg.value,'\'')))
         filter_(paste(paste0(input$stops.time.unit,'_str'),'==',paste0('\'',input$stops.time.agg.value,'\'')))
       
       if (input$stops.time.unit != 'date') {
@@ -191,8 +246,10 @@ shinyServer(function(input, output, session) {
       }
       
       map_data <- filtered_data %>%
-        group_by_(input$stops.time.unit, "stop_lat", "stop_lon") %>%
-        summarise(total_passengers = median(SUM))
+        group_by_(input$stops.time.unit, 'BUSSTOPID') %>%
+        summarise(total_passengers = median(SUM),
+                  stop_lat = first(stop_lat),
+                  stop_lon = first(stop_lon))
       
       map_plot <- ggmap(ctba.map) + 
         geom_density2d(data = map_data, aes(x = stop_lon, y = stop_lat), size = 0.3) + 
@@ -214,7 +271,7 @@ shinyServer(function(input, output, session) {
     })
     
     observe({ 
-      updated_choices = as.character(sort(unique(stops.data[[input$stops.time.unit]])))
+      updated_choices = as.character(sort(unique(stops.data.all[[input$stops.time.unit]])))
       
       updateSelectInput(session, "stops.time.agg.value",
                         choices = updated_choices,
