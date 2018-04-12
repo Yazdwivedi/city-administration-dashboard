@@ -8,6 +8,7 @@
 #
 
 library(shiny)
+library(shinyjs)
 library(readr)
 library(dplyr)
 library(ggplot2)
@@ -15,8 +16,11 @@ library(lubridate)
 library(plotly)
 library(Hmisc)
 library(ggmap)
+library(lazyeval)
 
 options(scipen=0)
+
+agg_function <- list(MIN = 'min', MAX = 'max', AVG = 'median', SUM = 'sum')
 
 get.weekdayset <- function(date) {
     weekday_num = wday(date)
@@ -57,7 +61,13 @@ stops.data <- read_delim("hourly-stops.csv", delim = ";") %>%
          weekday = wday(DATETIME,label=TRUE,abbr = TRUE),
          date = as.Date(DATETIME),
          hour = hour(DATETIME),
-         weekdayset = get.weekdayset(DATETIME))
+         weekdayset = get.weekdayset(DATETIME),
+         month_str = as.character(month),
+         week_str = as.character(week),
+         weekday_str = as.character(weekday),
+         date_str = as.character(date),
+         hour_str = as.character(hour),
+         weekdayset_str = as.character(weekdayset))
 
 stops.gtfs <- read_csv("gtfs/stops.txt", col_types = cols(.default = "_",
                                                           stop_id = col_integer(),
@@ -67,7 +77,9 @@ stops.gtfs <- read_csv("gtfs/stops.txt", col_types = cols(.default = "_",
 stops.data.all <- stops.data %>%
   inner_join(stops.gtfs, c("BUSSTOPID" = "stop_id"))
 
-ctba.map <- get_map(location = "Curitiba", maptype = "satellite", zoom = 12)
+#ctba.map <- get_map(location = "Curitiba", maptype = "satellite", zoom = 12)
+#save(ctba.map, file="./ctba-map.rda")
+load("./ctba-map.rda")
 
 # Tentando fazer o mapa aparecer 
 # map_data <- stops.data.all %>%
@@ -230,12 +242,16 @@ shinyServer(function(input, output, session) {
     output$map.plot <- renderPlot({
       
       filtered_data <- stops.data.all %>%
-        filter_('month' == as.integer(input$stops.time.agg.value),
-              ('DATETIME' >= input$stops.date.range[1]) & ('DATETIME' <= input$stops.date.range[2]))
+        filter_(paste(paste0(input$stops.time.agg.select,'_str'),'==',paste0('\'',input$stops.time.agg.value,'\'')))
+      
+      if (input$stops.time.agg.select != 'date') {
+        filtered_data <- filtered_data %>%
+          filter((date >= input$stops.date.range[1]) & (date <= input$stops.date.range[2]))  
+      }
       
       map_data <- filtered_data %>%
         group_by_(input$stops.time.agg.select, "stop_lat", "stop_lon") %>%
-        summarise(total_passengers = sum(SUM)) 
+        summarise_(total_passengers = interp(~median(f(var)), var = as.name(input$stops.metric.select), f = as.name(agg_function[[input$stops.metric.select]])))
       
       map_plot <- ggmap(ctba.map) + 
         geom_density2d(data = map_data, aes(x = stop_lon, y = stop_lat), size = 0.3) + 
@@ -244,9 +260,6 @@ shinyServer(function(input, output, session) {
         scale_fill_gradient(low = "green", high = "red") + 
         scale_alpha(range = c(0, 1), guide = FALSE)
       
-      # plotly_chart = map_plot %>%
-      #   ggplotly()
-      # return(plotly_chart)
       return(map_plot)
     })
     
@@ -263,6 +276,14 @@ shinyServer(function(input, output, session) {
                         choices = updated_choices,
                         selected = updated_choices[1]
       )
+    })
+    
+    observe({
+      if (input$stops.time.agg.select == 'date') {
+        disable("stops.date.range")  
+      } else {
+        enable("stops.date.range")
+      }
     })
     
 })

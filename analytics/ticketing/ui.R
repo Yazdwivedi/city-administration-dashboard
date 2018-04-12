@@ -10,10 +10,12 @@
 library(shiny)
 library(markdown)
 library(plotly)
+library(shinyjs)
 
 # Define UI for application that draws a histogram
 shinyUI(
   fluidPage(
+    useShinyjs(),
   
     # Application title
     titlePanel("Curitiba City Administration Dashboard (Powered by Ophidia)"),
@@ -52,7 +54,7 @@ shinyUI(
                             radioButtons("pass.time.agg.select", label = h3("Time Aggregation"),
                                         choices = list("Month" = 'month', "Week" = 'week'),
                                         selected = 'month'),
-                            selectInput("pass.metric.select", label = h3("Time Aggregation"), 
+                            selectInput("pass.metric.select", label = h3("Metric"), 
                                         choices = list("Minimum" = 'MIN', "Maximum" = 'MAX', 
                                                        "Count" = 'COUNT', "Sum" = 'SUM'),
                                         selected = "SUM")
@@ -70,8 +72,12 @@ shinyUI(
                                                          "Weekday Set" = 'weekdayset', "Day" = 'date', "Hour" = 'hour'), 
                                           selected = 'month'),
                               selectInput("stops.time.agg.value", label = h3("Time Aggregation Value"), 
-                                          choices = list('4' = 4, '5' = 5, '6' = 6, '7' = 7),
-                                          selected = 5),
+                                          choices = list('4' = '4', '5' = '5', '6' = '6', '7' = '7'),
+                                          selected = '4'),
+                              selectInput("stops.metric.select", label = h3("Metric"), 
+                                          choices = list("Minimum" = 'MIN', "Maximum" = 'MAX', 
+                                                         "Average" = 'AVG', "Sum" = 'SUM'),
+                                          selected = "SUM"),
                               # Copy the line below to make a slider range 
                               dateRangeInput("stops.date.range", label = h3("Date range"),
                                              min=as.Date("2017-04-30"), max=as.Date("2017-07-17"),
