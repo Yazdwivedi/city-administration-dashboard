@@ -20,6 +20,9 @@ library(lazyeval)
 
 options(scipen=0)
 
+AXIS_LABEL_SIZE = 15
+TITLE_LABEL_SIZE = 20
+
 agg_function <- list(MIN = 'min', MAX = 'max', AVG = 'median', SUM = 'sum')
 
 get.weekdayset <- function(date) {
@@ -29,30 +32,30 @@ get.weekdayset <- function(date) {
                                              'Tue/Wed/Thu')))
 }
 
-# data <- read_delim("./hourly-lines.csv", delim = ";") %>%
-#   mutate(DATETIME = ymd_hms(DATETIME),
-#          month = month(DATETIME),
-#          week = isoweek(DATETIME),
-#          weekday = wday(DATETIME,label=TRUE,abbr = TRUE),
-#          date = as.Date(DATETIME),
-#          hour = hour(DATETIME),
-#          weekdayset = get.weekdayset(DATETIME))
-# 
-# all.lines <- unique(data$CODLINHA)
-# 
-# pass.weekly.data <- read_delim("./weekly-usage_anonymized.csv", delim = ";") %>%
-#   group_by(DATETIME) %>%
-#   summarise(MIN = median(MIN),
-#             MAX = median(MAX),
-#             COUNT = median(COUNT),
-#             SUM = median(SUM))
-# 
-# pass.monthly.data <- read_delim("./monthly-usage_anonymized.csv", delim = ";") %>%
-#   group_by(DATETIME) %>%
-#   summarise(MIN = median(MIN),
-#             MAX = median(MAX),
-#             COUNT = median(COUNT),
-#             SUM = median(SUM))
+data <- read_delim("./hourly-lines.csv", delim = ";") %>%
+  mutate(DATETIME = ymd_hms(DATETIME),
+         month = month(DATETIME),
+         week = isoweek(DATETIME),
+         weekday = wday(DATETIME,label=TRUE,abbr = TRUE),
+         date = as.Date(DATETIME),
+         hour = hour(DATETIME),
+         weekdayset = get.weekdayset(DATETIME))
+
+all.lines <- unique(data$CODLINHA)
+
+pass.weekly.data <- read_delim("./weekly-usage_anonymized.csv", delim = ";") %>%
+  group_by(DATETIME) %>%
+  summarise(MIN = median(MIN),
+            MAX = median(MAX),
+            COUNT = median(COUNT),
+            SUM = median(SUM))
+
+pass.monthly.data <- read_delim("./monthly-usage_anonymized.csv", delim = ";") %>%
+  group_by(DATETIME) %>%
+  summarise(MIN = median(MIN),
+            MAX = median(MAX),
+            COUNT = median(COUNT),
+            SUM = median(SUM))
 
 stops.data <- read_delim("hourly-stops.csv", delim = ";") %>%
   mutate(DATETIME = ymd_hms(DATETIME),
@@ -80,50 +83,6 @@ stops.data.all <- stops.data %>%
 #ctba.map <- get_map(location = "Curitiba", maptype = "satellite", zoom = 12)
 #save(ctba.map, file="./ctba-map.rda")
 load("./ctba-map.rda")
-
-# Tentando fazer o mapa aparecer 
-# map_data <- stops.data.all %>%
-#   group_by_("hour", "stop_lat", "stop_lon") %>%
-#   summarise(total_passengers = sum(SUM)) 
-# 
-# g <- list(
-#   scope = 'curitiba',
-#   showland = TRUE,
-#   landcolor = toRGB("grey83"),
-#   subunitcolor = toRGB("white"),
-#   countrycolor = toRGB("white"),
-#   showlakes = TRUE,
-#   lakecolor = toRGB("white"),
-#   showsubunits = TRUE,
-#   showcountries = TRUE,
-#   resolution = 50,
-#   projection = list(
-#     type = 'conic conformal',
-#     rotation = list(lon = -100)
-#   ),
-#   lonaxis = list(
-#     showgrid = TRUE,
-#     gridwidth = 0.5,
-#     range = c(-140, -55),
-#     dtick = 5
-#   ),
-#   lataxis = list(
-#     showgrid = TRUE,
-#     gridwidth = 0.5,
-#     range = c(20, 60),
-#     dtick = 5
-#   )
-# )
-# 
-# p <- plot_geo(map_data, lat = ~stop_lat, lon = ~stop_lon) %>%
-#   add_markers(
-#     text = ~paste(total_passengers, "passengers"),
-#     color = ~total_passengers, symbol = I("circle"), size = I(8),
-#     hoverinfo = "text"
-#   ) %>%
-#   layout(title = 'Passenges on stops', geo = g)
-#
-
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {
@@ -166,60 +125,38 @@ shinyServer(function(input, output, session) {
         
         if (input$line.filter == 'all') {
             bar_plot <- filtered_lines %>%
-                group_by_(input$time.agg.select) %>%
+                group_by_(input$time.unit) %>%
                 summarise(total_passengers = sum(SUM)) %>%
-                ggplot(aes_string(x=input$time.agg.select, y='total_passengers')) +
+                ggplot(aes_string(x=input$time.unit, y='total_passengers')) +
                 geom_bar(stat = "identity") +
-                labs(title=paste("Total number of passengers per",capitalize(input$time.agg.select)),
-                     x=capitalize(input$time.agg.select),
-                     y="Number of passengers")
+                labs(title=paste("Total number of passengers per",capitalize(input$time.unit)),
+                     x=capitalize(input$time.unit),
+                     y="Number of passengers") + 
+              theme(plot.title = element_text(size=TITLE_LABEL_SIZE, face="bold", margin = margin(10, 0, 10, 0), hjust = 0.5),
+                    axis.title=element_text(size=AXIS_LABEL_SIZE, hjust = 0.5))
         } else {
             plot_title_prefix = ifelse(input$line.filter == 'top5','Top-5',
                                 ifelse(input$line.filter == 'bottom5','Bottom-5',
                                        paste('Line',input$bar.selected.line)))
             
-            # filtered_data %>%
-            #   filter(CODLINHA %in% get.selected.lines(lines_data = ., line.filter = input$line.filter,selected.line = input$bar.selected.line)) %>%
-            #   group_by_(input$time.agg.select, "CODLINHA") %>%
-            #   summarise(total_passengers = sum(SUM))
-            # 
-            # print(input$time.agg.select)
-            
-            # plot_data <- filtered_lines %>%
-            #   group_by_(input$time.agg.select, "CODLINHA") %>%
-            #   summarise(total_passengers = sum(SUM))
-            # 
-            # # print(plot_data)
-            # p <- plot_data %>%
-            # ggplot(data= .,aes_string(x=input$time.agg.select, y='total_passengers', group = 'CODLINHA', color = 'CODLINHA')) +
-            #   geom_line(stat = "identity") +
-            #   labs(title=paste(plot_title_prefix,"Total number of passengers per",capitalize(input$time.agg.select)),
-            #        x=capitalize(input$time.agg.select),
-            #        y="Number of passengers")
-            #   p %>%
-            #   ggplotly() %>%
-            #   layout(margin=list(l = 100), yaxis=list(tickprefix=" "))
-            
             bar_plot <- filtered_lines %>%
-                group_by_(input$time.agg.select, "CODLINHA") %>%
+                group_by_(input$time.unit, "CODLINHA") %>%
                 summarise(total_passengers = sum(SUM)) %>%
-                ggplot(aes_string(x=input$time.agg.select, y='total_passengers', group = 'CODLINHA', color = 'CODLINHA')) +
+                ggplot(aes_string(x=input$time.unit, y='total_passengers', group = 'CODLINHA', color = 'CODLINHA')) +
                 geom_line(stat = "identity") +
-                labs(title=paste(plot_title_prefix,"Total number of passengers per",capitalize(input$time.agg.select)),
-                    x=capitalize(input$time.agg.select),
-                    y="Number of passengers")
+                labs(title=paste(plot_title_prefix,"Total number of passengers per",capitalize(input$time.unit)),
+                    x=capitalize(input$time.unit),
+                    y="Number of passengers") + 
+              theme(plot.title = element_text(size=TITLE_LABEL_SIZE, face="bold", margin = margin(10, 0, 10, 0), hjust = 0.5),
+                    axis.title=element_text(size=AXIS_LABEL_SIZE, hjust = 0.5))
         }
         
-        # plotly_chart = bar_plot %>%
-        #     ggplotly() %>%
-        #     layout(margin=list(l = 100), yaxis=list(tickprefix=" "))
-        # return(plotly_chart)
         return(bar_plot)
     })
     
     output$passenger.bar.plot <- renderPlotly({
       
-      if (input$pass.time.agg.select == "week"){
+      if (input$pass.time.unit == "week"){
         passenger.bar.plot <- pass.weekly.data %>%
           ggplot(aes_string(x = "DATETIME", y = input$pass.metric.select)) +
           geom_bar(stat = "identity") + 
@@ -229,7 +166,11 @@ shinyServer(function(input, output, session) {
         passenger.bar.plot <- pass.monthly.data %>%
           ggplot(aes_string(x = "DATETIME", y = input$pass.metric.select)) +
           geom_bar(stat = "identity") +
-          xlab("Month")
+          labs(title=paste("Agerage passenger num. boardings per",capitalize(input$time.unit)),
+               x=capitalize(input$time.unit),
+               y="Number of boardings") + 
+          theme(plot.title = element_text(face="bold", margin = margin(5, 0, 5, 0), hjust = 0.5),
+                axis.title=element_text(size=AXIS_LABEL_SIZE, hjust = 0.5))
       }
       
       plotly_chart = passenger.bar.plot %>%
@@ -242,23 +183,26 @@ shinyServer(function(input, output, session) {
     output$map.plot <- renderPlot({
       
       filtered_data <- stops.data.all %>%
-        filter_(paste(paste0(input$stops.time.agg.select,'_str'),'==',paste0('\'',input$stops.time.agg.value,'\'')))
+        filter_(paste(paste0(input$stops.time.unit,'_str'),'==',paste0('\'',input$stops.time.agg.value,'\'')))
       
-      if (input$stops.time.agg.select != 'date') {
+      if (input$stops.time.unit != 'date') {
         filtered_data <- filtered_data %>%
           filter((date >= input$stops.date.range[1]) & (date <= input$stops.date.range[2]))  
       }
       
       map_data <- filtered_data %>%
-        group_by_(input$stops.time.agg.select, "stop_lat", "stop_lon") %>%
-        summarise_(total_passengers = interp(~median(f(var)), var = as.name(input$stops.metric.select), f = as.name(agg_function[[input$stops.metric.select]])))
+        group_by_(input$stops.time.unit, "stop_lat", "stop_lon") %>%
+        summarise(total_passengers = median(SUM))
       
       map_plot <- ggmap(ctba.map) + 
         geom_density2d(data = map_data, aes(x = stop_lon, y = stop_lat), size = 0.3) + 
         stat_density2d(data = map_data, aes(x = stop_lon, y = stop_lat, fill = ..level.., alpha = ..level..), 
                        size = 0.01, bins = 16, geom = "polygon") + 
         scale_fill_gradient(low = "green", high = "red") + 
-        scale_alpha(range = c(0, 1), guide = FALSE)
+        scale_alpha(range = c(0, 1), guide = FALSE) +
+        labs(title=paste("Passengers at bus stops Heatmap")) + 
+        theme(plot.title = element_text(size=TITLE_LABEL_SIZE, face="bold", margin = margin(10, 0, 10, 0), hjust = 0.5),
+              axis.title=element_text(size=AXIS_LABEL_SIZE, hjust = 0.5))
       
       return(map_plot)
     })
@@ -270,7 +214,7 @@ shinyServer(function(input, output, session) {
     })
     
     observe({ 
-      updated_choices = as.character(sort(unique(stops.data[[input$stops.time.agg.select]])))
+      updated_choices = as.character(sort(unique(stops.data[[input$stops.time.unit]])))
       
       updateSelectInput(session, "stops.time.agg.value",
                         choices = updated_choices,
@@ -279,10 +223,16 @@ shinyServer(function(input, output, session) {
     })
     
     observe({
-      if (input$stops.time.agg.select == 'date') {
+      if (input$stops.time.unit == 'date') {
         disable("stops.date.range")  
       } else {
         enable("stops.date.range")
+      }
+      
+      if (input$line.filter == 'single-line') {
+        enable("bar.lineSelector")  
+      } else {
+        disable("bar.lineSelector")
       }
     })
     

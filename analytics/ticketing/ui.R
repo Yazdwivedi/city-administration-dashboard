@@ -24,16 +24,17 @@ shinyUI(
     
     navbarPage("CAD",
                 id = 'tab',
-                selected = 'Bus Stop',
-                tabPanel("Overall",
+                selected = 'Overall Boarding',
+                tabPanel("Overall Boarding",
+                         
+                         hr(),
+                         hr(),
                   sidebarLayout(
                       sidebarPanel(
-                          # Copy the line below to make a select box 
-                          selectInput("time.agg.select", label = h3("Time Aggregation"), 
+                          selectInput("time.unit", label = h3("Time Unit"), 
                                       choices = list("Month" = 'month', "Week" = 'week', "Weekday" = 'weekday', 
                                                      "Weekday Set" = 'weekdayset', "Day" = 'date', "Hour" = 'hour'), 
                                       selected = 'month'),
-                          # Copy the line below to make a slider range 
                           dateRangeInput("date.range", label = h3("Date range"),
                                          min=as.Date("2017-04-30"), max=as.Date("2017-07-17"),
                                          start=as.Date("2017-04-30"),end=as.Date("2017-07-17")),
@@ -47,11 +48,10 @@ shinyUI(
                       )
                   )
                 ),
-               tabPanel("Passenger",
+               tabPanel("Average Passenger Boardings",
                         sidebarLayout(
                           sidebarPanel(
-                            # Copy the line below to make a select box
-                            radioButtons("pass.time.agg.select", label = h3("Time Aggregation"),
+                            radioButtons("pass.time.unit", label = h3("Time Unit"),
                                         choices = list("Month" = 'month', "Week" = 'week'),
                                         selected = 'month'),
                             selectInput("pass.metric.select", label = h3("Metric"), 
@@ -63,22 +63,21 @@ shinyUI(
                           plotlyOutput("passenger.bar.plot")
                         )
                )),
-               tabPanel("Bus Stop",
+               tabPanel("Bus Stop Crowdedness",
                           sidebarLayout(
                             sidebarPanel(
                               # Copy the line below to make a select box 
-                              selectInput("stops.time.agg.select", label = h3("Time Aggregation"), 
+                              selectInput("stops.time.unit", label = h3("Time Unit"), 
                                           choices = list("Month" = 'month', "Week" = 'week', "Weekday" = 'weekday', 
                                                          "Weekday Set" = 'weekdayset', "Day" = 'date', "Hour" = 'hour'), 
                                           selected = 'month'),
                               selectInput("stops.time.agg.value", label = h3("Time Aggregation Value"), 
                                           choices = list('4' = '4', '5' = '5', '6' = '6', '7' = '7'),
                                           selected = '4'),
-                              selectInput("stops.metric.select", label = h3("Metric"), 
-                                          choices = list("Minimum" = 'MIN', "Maximum" = 'MAX', 
-                                                         "Average" = 'AVG', "Sum" = 'SUM'),
-                                          selected = "SUM"),
-                              # Copy the line below to make a slider range 
+                              # selectInput("stops.metric.select", label = h3("Metric"), 
+                              #             choices = list("Minimum" = 'MIN', "Maximum" = 'MAX', 
+                              #                            "Average" = 'AVG', "Sum" = 'SUM'),
+                              #             selected = "SUM"),
                               dateRangeInput("stops.date.range", label = h3("Date range"),
                                              min=as.Date("2017-04-30"), max=as.Date("2017-07-17"),
                                              start=as.Date("2017-04-30"),end=as.Date("2017-07-17"))
