@@ -31,112 +31,115 @@ get.weekdayset <- function(date) {
                                              'Tue/Wed/Thu')))
 }
 
-#Reading overall boarding data...
+load_data <- function() {
 
-# data <- read_delim("./hourly-lines.csv", delim = ";") %>%
-#   mutate(DATETIME = ymd_hms(DATETIME),
-#          month = month(DATETIME),
-#          week = isoweek(DATETIME),
-#          weekday = wday(DATETIME,label=TRUE,abbr = TRUE, locale = "en_US.utf8"),
-#          date = as.Date(DATETIME),
-#          hour = hour(DATETIME),
-#          weekdayset = get.weekdayset(DATETIME)) %>%
-#   select(CODLINHA, SUM, month, week, weekday, date, hour, weekdayset)
-# write.csv(data, './overall-boarding.csv', row.names = F)
-data <- read_csv('./overall-boarding.csv', col_types=list(CODLINHA = col_character(),
-                                                      SUM = col_double(),
-                                                      month = col_integer(),
-                                                      week = col_integer(),
-                                                      weekday = col_factor(levels = c('Sun','Mon','Tue','Wed','Thu','Fri','Sat')),
-                                                      date = col_datetime(format = ""),
-                                                      hour = col_integer(),
-                                                      weekdayset = col_factor(levels = c('Sat/Sun','Mon/Fri','Tue/Wed/Thu'))))
-
-all.lines <- unique(data$CODLINHA)
-
-#Reading average passenger week boarding data...
-
-# pass.weekly.data <- read_delim("./weekly-usage_anonymized.csv", delim = ";") %>%
-#   group_by(DATETIME) %>%
-#   summarise(MIN = median(MIN),
-#             MAX = median(MAX),
-#             COUNT = median(COUNT),
-#             SUM = median(SUM)) %>%
-#   ungroup() %>%
-#   rename(year_week = DATETIME)
-# write.csv(pass.weekly.data, './avg-passenger-week-boardings.csv',row.names = F)
-pass.weekly.data <- read_csv('./avg-passenger-week-boardings.csv', col_types=list(year_week = col_character(),
-                                                                                   MIN = col_integer(),
-                                                                                   MAX = col_integer(),
-                                                                                   COUNT = col_integer(),
-                                                                                   SUM = col_integer()))
-
-#Reading average passenger month boarding data...
-
-# pass.monthly.data <- read_delim("./monthly-usage_anonymized.csv", delim = ";") %>%
-#   group_by(DATETIME) %>%
-#   summarise(MIN = median(MIN),
-#             MAX = median(MAX),
-#             COUNT = median(COUNT),
-#             SUM = median(SUM)) %>%
-#   ungroup() %>%
-#   rename(month = DATETIME)
-# write.csv(pass.monthly.data, './avg-passenger-month-boardings.csv',row.names = F)
-pass.monthly.data <- read_csv('./avg-passenger-month-boardings.csv', col_types=list(month = col_character(),
-                                                                                  MIN = col_integer(),
-                                                                                  MAX = col_integer(),
-                                                                                  COUNT = col_integer(),
-                                                                                  SUM = col_integer()))
-#Reading overall bus stops boarding data...
-
-# stops.data <- read_delim("hourly-stops.csv", delim = ";") %>%
-#   mutate(DATETIME = ymd_hms(DATETIME),
-#          month = month(DATETIME),
-#          week = isoweek(DATETIME),
-#          weekday = wday(DATETIME,label=TRUE,abbr = TRUE, locale = "en_US.utf8"),
-#          date = as.Date(DATETIME),
-#          hour = hour(DATETIME),
-#          weekdayset = get.weekdayset(DATETIME),
-#          weekdayset = get.weekdayset(DATETIME),
-#          month_str = as.character(month),
-#          week_str = as.character(week),
-#          weekday_str = as.character(weekday),
-#          date_str = as.character(date),
-#          hour_str = as.character(hour),
-#          weekdayset_str = as.character(weekdayset))
-# 
-# stops.gtfs <- read_csv("gtfs/stops.txt", col_types = cols(.default = "_",
-#                                                           stop_id = col_integer(),
-#                                                           stop_lat = col_double(),
-#                                                           stop_lon = col_double()))
-# 
-# stops.data.all <- stops.data2 %>%
-#   inner_join(stops.gtfs, c("BUSSTOPID" = "stop_id")) %>%
-#   select(BUSSTOPID, SUM, month, week, weekday, date, hour, weekdayset, stop_lat, stop_lon, month_str, week_str, weekday_str, date_str, hour_str, weekdayset_str)
-# 
-# write.csv(stops.data.all, './stops-overall-boarding.csv',row.names = F)
-stops.data.all <- read_csv('./stops-overall-boarding.csv', col_types=list(BUSSTOPID = col_integer(),
-                                                                           SUM = col_double(),
-                                                                           month = col_integer(),
-                                                                           week = col_integer(),
-                                                                           weekday = col_factor(levels = c('Sun','Mon','Tue','Wed','Thu','Fri','Sat')),
-                                                                           date = col_datetime(format = ""),
-                                                                           hour = col_integer(),
-                                                                           weekdayset = col_factor(levels = c('Sat/Sun','Mon/Fri','Tue/Wed/Thu')),
-                                                                           stop_lat = col_double(),
-                                                                           stop_lon = col_double(),
-                                                                           month_str = col_character(),
-                                                                           week_str = col_character(),
-                                                                           weekday_str = col_character(),
-                                                                           date_str = col_character(),
-                                                                           hour_str = col_character(),
-                                                                           weekdayset_str = col_character()))
-
-#Reading Curitiba Map from file...
-
-#ctba.map <- get_map(location = "Curitiba", maptype = "satellite", zoom = 12)
-#save(ctba.map, file="./ctba-map.rda")
-load("./ctba-map.rda")
+  #Reading overall boarding data...
+  
+  # data <- read_delim("./hourly-lines.csv", delim = ";") %>%
+  #   mutate(DATETIME = ymd_hms(DATETIME),
+  #          month = month(DATETIME),
+  #          week = isoweek(DATETIME),
+  #          weekday = wday(DATETIME,label=TRUE,abbr = TRUE, locale = "en_US.utf8"),
+  #          date = as.Date(DATETIME),
+  #          hour = hour(DATETIME),
+  #          weekdayset = get.weekdayset(DATETIME)) %>%
+  #   select(CODLINHA, SUM, month, week, weekday, date, hour, weekdayset)
+  # write.csv(data, './overall-boarding.csv', row.names = F)
+  data <<- read_csv('./overall-boarding.csv', col_types=list(CODLINHA = col_character(),
+                                                        SUM = col_double(),
+                                                        month = col_integer(),
+                                                        week = col_integer(),
+                                                        weekday = col_factor(levels = c('Sun','Mon','Tue','Wed','Thu','Fri','Sat')),
+                                                        date = col_datetime(format = ""),
+                                                        hour = col_integer(),
+                                                        weekdayset = col_factor(levels = c('Sat/Sun','Mon/Fri','Tue/Wed/Thu'))))
+  
+  all.lines <<- unique(data$CODLINHA)
+  
+  #Reading average passenger week boarding data...
+  
+  # pass.weekly.data <- read_delim("./weekly-usage_anonymized.csv", delim = ";") %>%
+  #   group_by(DATETIME) %>%
+  #   summarise(MIN = median(MIN),
+  #             MAX = median(MAX),
+  #             COUNT = median(COUNT),
+  #             SUM = median(SUM)) %>%
+  #   ungroup() %>%
+  #   rename(year_week = DATETIME)
+  # write.csv(pass.weekly.data, './avg-passenger-week-boardings.csv',row.names = F)
+  pass.weekly.data <<- read_csv('./avg-passenger-week-boardings.csv', col_types=list(year_week = col_character(),
+                                                                                     MIN = col_integer(),
+                                                                                     MAX = col_integer(),
+                                                                                     COUNT = col_integer(),
+                                                                                     SUM = col_integer()))
+  
+  #Reading average passenger month boarding data...
+  
+  # pass.monthly.data <- read_delim("./monthly-usage_anonymized.csv", delim = ";") %>%
+  #   group_by(DATETIME) %>%
+  #   summarise(MIN = median(MIN),
+  #             MAX = median(MAX),
+  #             COUNT = median(COUNT),
+  #             SUM = median(SUM)) %>%
+  #   ungroup() %>%
+  #   rename(month = DATETIME)
+  # write.csv(pass.monthly.data, './avg-passenger-month-boardings.csv',row.names = F)
+  pass.monthly.data <<- read_csv('./avg-passenger-month-boardings.csv', col_types=list(month = col_character(),
+                                                                                    MIN = col_integer(),
+                                                                                    MAX = col_integer(),
+                                                                                    COUNT = col_integer(),
+                                                                                    SUM = col_integer()))
+  #Reading overall bus stops boarding data...
+  
+  # stops.data <- read_delim("hourly-stops.csv", delim = ";") %>%
+  #   mutate(DATETIME = ymd_hms(DATETIME),
+  #          month = month(DATETIME),
+  #          week = isoweek(DATETIME),
+  #          weekday = wday(DATETIME,label=TRUE,abbr = TRUE, locale = "en_US.utf8"),
+  #          date = as.Date(DATETIME),
+  #          hour = hour(DATETIME),
+  #          weekdayset = get.weekdayset(DATETIME),
+  #          weekdayset = get.weekdayset(DATETIME),
+  #          month_str = as.character(month),
+  #          week_str = as.character(week),
+  #          weekday_str = as.character(weekday),
+  #          date_str = as.character(date),
+  #          hour_str = as.character(hour),
+  #          weekdayset_str = as.character(weekdayset))
+  # 
+  # stops.gtfs <- read_csv("gtfs/stops.txt", col_types = cols(.default = "_",
+  #                                                           stop_id = col_integer(),
+  #                                                           stop_lat = col_double(),
+  #                                                           stop_lon = col_double()))
+  # 
+  # stops.data.all <- stops.data2 %>%
+  #   inner_join(stops.gtfs, c("BUSSTOPID" = "stop_id")) %>%
+  #   select(BUSSTOPID, SUM, month, week, weekday, date, hour, weekdayset, stop_lat, stop_lon, month_str, week_str, weekday_str, date_str, hour_str, weekdayset_str)
+  # 
+  # write.csv(stops.data.all, './stops-overall-boarding.csv',row.names = F)
+  stops.data.all <<- read_csv('./stops-overall-boarding.csv', col_types=list(BUSSTOPID = col_integer(),
+                                                                             SUM = col_double(),
+                                                                             month = col_integer(),
+                                                                             week = col_integer(),
+                                                                             weekday = col_factor(levels = c('Sun','Mon','Tue','Wed','Thu','Fri','Sat')),
+                                                                             date = col_datetime(format = ""),
+                                                                             hour = col_integer(),
+                                                                             weekdayset = col_factor(levels = c('Sat/Sun','Mon/Fri','Tue/Wed/Thu')),
+                                                                             stop_lat = col_double(),
+                                                                             stop_lon = col_double(),
+                                                                             month_str = col_character(),
+                                                                             week_str = col_character(),
+                                                                             weekday_str = col_character(),
+                                                                             date_str = col_character(),
+                                                                             hour_str = col_character(),
+                                                                             weekdayset_str = col_character()))
+  
+  #Reading Curitiba Map from file...
+  
+  #ctba.map <- get_map(location = "Curitiba", maptype = "satellite", zoom = 12)
+  #save(ctba.map, file="./ctba-map.rda")
+  load("./ctba-map.rda")
+}
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {
@@ -166,6 +169,12 @@ shinyServer(function(input, output, session) {
     }
     
     output$bar.plot <- renderPlot({
+        if(is.null(ctba.map)) {
+          withProgress(message = 'Loading Data...',
+           detail = 'This may take a while...', value = 0, {
+             load_data()
+           })
+        }
       
         filtered_data <- data %>%
             filter((date >= input$date.range[1]) & (date <= input$date.range[2]))
@@ -235,31 +244,36 @@ shinyServer(function(input, output, session) {
     })
     
     output$map.plot <- renderPlot({
+      withProgress(message = 'Building Heatmap...',
+                   detail = 'This may take a while...', value = 0, {
+                   
       
-      filtered_data <- stops.data.all %>%
-        #filter_(paste(paste0('as.character(',input$stops.time.unit,')'),'==',paste0('\'',input$stops.time.agg.value,'\'')))
-        filter_(paste(paste0(input$stops.time.unit,'_str'),'==',paste0('\'',input$stops.time.agg.value,'\'')))
-      
-      if (input$stops.time.unit != 'date') {
-        filtered_data <- filtered_data %>%
-          filter((date >= input$stops.date.range[1]) & (date <= input$stops.date.range[2]))  
-      }
-      
-      map_data <- filtered_data %>%
-        group_by_(input$stops.time.unit, 'BUSSTOPID') %>%
-        summarise(total_passengers = median(SUM),
-                  stop_lat = first(stop_lat),
-                  stop_lon = first(stop_lon))
-      
-      map_plot <- ggmap(ctba.map) + 
-        geom_density2d(data = map_data, aes(x = stop_lon, y = stop_lat), size = 0.3) + 
-        stat_density2d(data = map_data, aes(x = stop_lon, y = stop_lat, fill = ..level.., alpha = ..level..), 
-                       size = 0.01, bins = 16, geom = "polygon") + 
-        scale_fill_gradient(low = "green", high = "red") + 
-        scale_alpha(range = c(0, 1), guide = FALSE) +
-        labs(title=paste("Passengers at bus stops Heatmap")) + 
-        theme(plot.title = element_text(size=TITLE_LABEL_SIZE, face="bold", margin = margin(10, 0, 10, 0), hjust = 0.5),
-              axis.title=element_text(size=AXIS_LABEL_SIZE, hjust = 0.5))
+        filtered_data <- stops.data.all %>%
+          #filter_(paste(paste0('as.character(',input$stops.time.unit,')'),'==',paste0('\'',input$stops.time.agg.value,'\'')))
+          filter_(paste(paste0(input$stops.time.unit,'_str'),'==',paste0('\'',input$stops.time.agg.value,'\'')))
+        
+        if (input$stops.time.unit != 'date') {
+          filtered_data <- filtered_data %>%
+            filter((date >= input$stops.date.range[1]) & (date <= input$stops.date.range[2]))  
+        }
+        
+        map_data <- filtered_data %>%
+          group_by_(input$stops.time.unit, 'BUSSTOPID') %>%
+          summarise(total_passengers = median(SUM),
+                    stop_lat = first(stop_lat),
+                    stop_lon = first(stop_lon))
+        
+        map_plot <- ggmap(ctba.map) + 
+          geom_density2d(data = map_data, aes(x = stop_lon, y = stop_lat), size = 0.3) + 
+          stat_density2d(data = map_data, aes(x = stop_lon, y = stop_lat, fill = ..level.., alpha = ..level..), 
+                         size = 0.01, bins = 16, geom = "polygon") + 
+          scale_fill_gradient(low = "green", high = "red") + 
+          scale_alpha(range = c(0, 1), guide = FALSE) +
+          labs(title=paste("Passengers at bus stops Heatmap")) + 
+          theme(plot.title = element_text(size=TITLE_LABEL_SIZE, face="bold", margin = margin(10, 0, 10, 0), hjust = 0.5),
+                axis.title=element_text(size=AXIS_LABEL_SIZE, hjust = 0.5))
+        
+       })
       
       return(map_plot)
     })
